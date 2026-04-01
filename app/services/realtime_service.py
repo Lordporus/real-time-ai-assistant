@@ -348,7 +348,7 @@ Always prioritize retrieved context over:
         system_message += f"\n\n{_MEMORY_USAGE_ADDENDUM}"
 
         if extra_system_parts:
-            system_message += "\n\n" + "\n\n".join(extra_system_parts)
+            system_message += "\n\n" + "\n\n".join(escape_curly_braces(p) for p in extra_system_parts)
 
         if mode_addendum:
             system_message += f"\n\n{mode_addendum}"
