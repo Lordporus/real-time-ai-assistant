@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+#from langchain_huggingface import HuggingFaceEmbeddings
+#from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
 from config import (
@@ -23,10 +23,14 @@ logger = logging.getLogger("E.D.I.T.H")
 
 class VectorStoreService:
     def __init__(self):
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL,
-            model_kwargs={"device": "cpu"},
-        )
+        #self.embeddings = HuggingFaceEmbeddings(
+        #    model_name=EMBEDDING_MODEL,
+        #    model_kwargs={"device": "cpu"},
+        #)
+
+        self.embeddings = None
+
+########################################################
 
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=CHUNK_SIZE,
@@ -140,10 +144,13 @@ class VectorStoreService:
             len(learning_docs),
             len(chat_docs),
         )
-
+####################################################################
         # Embedding + FAISS index build — CPU-heavy but must be atomic.
-        if not all_documents:
-            new_store = FAISS.from_texts(["No data available yet."], self.embeddings)
+        #if not all_documents:
+        #    new_store = FAISS.from_texts(["No data available yet."], self.embeddings)
+        if self.embeddings is None:
+            logger.warning("[VECTOR] No embeddings — skipping store creation")
+            return None
             logger.info("[VECTOR] No documents found, created placeholder index")
         else:
             chunks = self.text_splitter.split_documents(all_documents)
@@ -153,10 +160,15 @@ class VectorStoreService:
                 CHUNK_SIZE,
                 CHUNK_OVERLAP,
             )
-            new_store = FAISS.from_documents(chunks, self.embeddings)
-            logger.info(
-                "[VECTOR] FAISS index built successfully with %d vectors",
-                len(chunks),
+##################################################################
+        if self.embeddings is None:
+            logger.warning("[VECTOR] Skipped FAISS build (embeddings disabled)")
+            return None
+
+        new_store = FAISS.from_documents(chunks, self.embeddings)
+        logger.info(
+            "[VECTOR] FAISS index built successfully with %d vectors",
+            len(chunks),
             )
 
         # Swap in the new store and persist — hold lock for the swap + save.
@@ -205,36 +217,74 @@ class VectorStoreService:
     # ADD DOCUMENTS (UPLOAD)  (write — full lock)
     # ─────────────────────────────────────────────
 
-    def add_documents(self, documents: List[Document]) -> int:
-        if not documents:
-            logger.warning("[VECTOR] add_documents called with empty list")
+#    def add_documents(self, documents: List[Document]) -> int:
+#        if not documents:
+#            logger.warning("[VECTOR] add_documents called with empty list")
+#            return 0
+#
+#        try:
+#            # Chunking / embedding happens outside the lock (CPU-bound, no FAISS state).
+#            chunks = self.text_splitter.split_documents(documents)
+#
+ #           if not chunks:
+#                logger.warning("[VECTOR] No chunks created")
+#                return 0
+#
+#            logger.info("[VECTOR] add_documents: %d → %d chunks", len(documents), len(chunks))
+#
+#            # Build a temporary index from the new chunks (no shared state yet).
+#            new_index = FAISS.from_documents(chunks, self.embeddings)
+#
+#            # Merge into the live index under the lock — minimum critical section.
+# #           with self._faiss_lock:
+#                if self.vector_store is None:
+#                    self.vector_store = new_index
+#                else:
+#                    self.vector_store.merge_from(new_index)
+#
+ #               self._retriever_cache.clear()
+ #               self.save_vector_store()   # re-entrant
+#
+#            return len(chunks)
+#
+#        except Exception as exc:
+#            logger.error("[VECTOR] add_documents failed: %s", exc, exc_info=True)
+#            return 0
+def add_documents(self, documents: List[Document]) -> int:
+    if self.embeddings is None:
+        logger.warning("[VECTOR] Skipping add_documents (embeddings disabled)")
+        return 0
+
+    if not documents:
+        logger.warning("[VECTOR] add_documents called with empty list")
+        return 0
+
+    try:
+        chunks = self.text_splitter.split_documents(documents)
+
+        if not chunks:
+            logger.warning("[VECTOR] No chunks created")
             return 0
 
-        try:
-            # Chunking / embedding happens outside the lock (CPU-bound, no FAISS state).
-            chunks = self.text_splitter.split_documents(documents)
+        logger.info(
+            "[VECTOR] add_documents: %d → %d chunks",
+            len(documents),
+            len(chunks),
+        )
 
-            if not chunks:
-                logger.warning("[VECTOR] No chunks created")
-                return 0
+        new_index = FAISS.from_documents(chunks, self.embeddings)
 
-            logger.info("[VECTOR] add_documents: %d → %d chunks", len(documents), len(chunks))
+        with self._faiss_lock:
+            if self.vector_store is None:
+                self.vector_store = new_index
+            else:
+                self.vector_store.merge_from(new_index)
 
-            # Build a temporary index from the new chunks (no shared state yet).
-            new_index = FAISS.from_documents(chunks, self.embeddings)
+            self._retriever_cache.clear()
+            self.save_vector_store()
 
-            # Merge into the live index under the lock — minimum critical section.
-            with self._faiss_lock:
-                if self.vector_store is None:
-                    self.vector_store = new_index
-                else:
-                    self.vector_store.merge_from(new_index)
+        return len(chunks)
 
-                self._retriever_cache.clear()
-                self.save_vector_store()   # re-entrant
-
-            return len(chunks)
-
-        except Exception as exc:
-            logger.error("[VECTOR] add_documents failed: %s", exc, exc_info=True)
-            return 0
+    except Exception as exc:
+        logger.error("[VECTOR] add_documents failed: %s", exc, exc_info=True)
+        return 0
