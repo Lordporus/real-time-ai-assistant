@@ -4,10 +4,10 @@ import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+#from langchain_text_splitters import RecursiveCharacterTextSplitter
 #from langchain_huggingface import HuggingFaceEmbeddings
 #from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
+#from langchain_core.documents import Document
 
 from config import (
     LEARNING_DATA_DIR,
