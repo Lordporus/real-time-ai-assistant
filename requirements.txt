@@ -1,36 +1,66 @@
+# ================================
 # Web framework & server
+# ================================
 fastapi>=0.100.0,<1.0
 uvicorn[standard]>=0.22.0
 
+
+# ================================
 # LangChain (LLM orchestration)
+# ================================
 langchain>=0.3.0
 langchain-groq>=0.2.0
 langchain-anthropic>=0.3.0
 langchain-community>=0.3.0
 langchain-core>=0.3.0
-langchain-huggingface>=0.1.0
 langchain-text-splitters>=0.2.0
 
-# Embeddings & vector store
-sentence-transformers>=2.2.0
-faiss-cpu>=1.7.0
+# ⚠️ OPTIONAL (remove in production if not used)
+# Pulls extra HuggingFace dependencies
+# langchain-huggingface>=0.1.0
 
+
+# ================================
+# Embeddings & vector store (HEAVY)
+# ================================
+# ❌ DISABLED for Render (too heavy, requires CPU/RAM)
+# sentence-transformers>=2.2.0
+# faiss-cpu>=1.7.0
+
+
+# ================================
 # Config & validation
+# ================================
 python-dotenv>=1.0.0
 pydantic>=2.0.0
 bcrypt>=4.0.0
 
-# ML (for embeddings)
-numpy>=1.24.0
-torch>=2.0.0
-transformers>=4.30.0
 
+# ================================
+# ML / Numerical (OPTIONAL)
+# ================================
+# Only enable if doing local vector math
+# numpy>=1.24.0
+
+# ❌ VERY HEAVY — DO NOT ENABLE ON RENDER
+# torch>=2.0.0
+# transformers>=4.30.0
+
+
+# ================================
 # HTTP & utilities
+# ================================
 requests>=2.28.0
 rich>=13.0.0
 
+
+# ================================
 # Web search (Realtime mode)
+# ================================
 tavily-python>=0.5.0
 
-# Text-to-speech (no API key)
+
+# ================================
+# Text-to-speech
+# ================================
 edge-tts>=6.1.0
