@@ -1,0 +1,34 @@
+# Environment Variables (CRITICAL)
+.env
+.env.*
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+build/
+dist/
+
+# Local Database & Storage
+database/chats_data/
+database/vector_store/
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+
+.playwright-mcp/
+.pyre_configuration
+analysis.md
+
+
+database/clients/
+*.pdf
+*.json
